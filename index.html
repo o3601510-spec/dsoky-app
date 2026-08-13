@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="تطبيق شبكة أبو إسماعيل للواي فاي — افتح الشبكة، اشحن كروت، وتواصل مع الدعم">
+<title>تطبيق شبكة أبو إسماعيل</title>
+<!-- ============================================================
+📱 صفحة التطبيق (PWA) — تُستضاف على GitHub Pages (HTTPS)
+   عشان متصفح كروم يسمح بتثبيت الأيقونة على شاشة الموبايل
+   (التثبيت المباشر ممنوع على HTTP — قاعدة أمان في المتصفح)
+============================================================ -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e30613">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Abu Ismael">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{ --ai-red:#ff3742; --ai-red-dark:#c81f2c; --ai-bg:#0f1115; --ai-card:#181c24; --ai-panel:#21262f; --ai-border:#2e3440; --ai-text:#f5f6f8; --ai-muted:#a7adba; --ai-green:#2ee06f; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:18px; }
+.app{ width:100%; max-width:400px; }
+.brand{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.brand-mark{ width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg,var(--ai-red),var(--ai-red-dark)); display:flex; align-items:center; justify-content:center; font-size:1.5em; color:#fff; box-shadow:0 6px 18px rgba(255,55,66,.35); flex-shrink:0; }
+.brand-name{ font-size:1.35em; font-weight:800; }
+.brand-sub{ color:var(--ai-muted); font-size:.85em; font-weight:700; }
+.card{ background:var(--ai-card); border:1px solid var(--ai-border); border-radius:20px; padding:20px 16px; box-shadow:0 14px 34px rgba(0,0,0,.45); }
+.sec-title{ font-size:.95em; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--ai-red); }
+.btn{ display:flex; align-items:center; justify-content:center; gap:9px; width:100%; border:0; border-radius:14px; padding:14px; font-weight:800; font-size:1em; font-family:inherit; cursor:pointer; text-decoration:none; color:#fff; }
+.btn-primary{ background:linear-gradient(135deg,var(--ai-red),var(--ai-red-dark)); box-shadow:0 8px 18px rgba(255,55,66,.3); }
+.row{ display:flex; gap:10px; }
+.btn-ghost{ background:var(--ai-panel); border:1px solid var(--ai-border); color:var(--ai-text); }
+.row .btn-ghost{ flex:1; }
+.btn-ghost .fa-whatsapp{ color:var(--ai-green); }
+.btn-ghost .fa-phone{ color:var(--ai-red); }
+.installed{ display:none; text-align:center; padding:12px; border:1px solid rgba(46,224,111,.35); background:rgba(46,224,111,.1); border-radius:14px; color:var(--ai-green); font-weight:800; font-size:.95em; }
+.ios-hint{ display:none; margin-top:10px; font-size:.78em; color:var(--ai-muted); line-height:1.9; background:var(--ai-panel); border:1px solid var(--ai-border); border-radius:12px; padding:10px 12px; }
+.note{ margin-top:14px; font-size:.78em; color:var(--ai-muted); text-align:center; line-height:1.8; }
+.foot{ margin-top:16px; text-align:center; font-size:.75em; color:var(--ai-muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 🔷 الهيدر -->
+  <div class="brand">
+    <div class="brand-mark"><i class="fas fa-wifi"></i></div>
+    <div>
+      <div class="brand-name">Abu Ismael</div>
+      <div class="brand-sub">تطبيق شبكة الواي فاي</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <!-- 📲 التثبيت -->
+    <div class="sec-title"><i class="fas fa-mobile-screen-button"></i> ثبّت التطبيق على شاشتك</div>
+    <button type="button" id="installBtn" class="btn btn-primary"><i class="fas fa-download"></i> تثبيت التطبيق الآن</button>
+    <div class="installed" id="installedBox"><i class="fas fa-circle-check"></i> تم تثبيت التطبيق على جهازك ✓</div>
+    <div class="ios-hint" id="iosHint"><b style="color:#ff6b73">آيفون:</b> اضغط زر المشاركة ↑ ثم «إضافة إلى الشاشة الرئيسية»</div>
+
+    <!-- 🌐 فتح الشبكة -->
+    <div class="sec-title" style="margin-top:20px"><i class="fas fa-wifi"></i> ابدأ التصفح</div>
+    <a href="http://10.0.0.1/status.html" class="btn btn-primary"><i class="fas fa-arrow-left"></i> افتح الشبكة الآن</a>
+    <div class="note">التطبيق بيشتغل لما تكون متصل بشبكة أبو إسماعيل — بيفتح صفحة باقتك وكروت الشحن.</div>
+
+    <!-- 🎧 الدعم -->
+    <div class="sec-title" style="margin-top:20px"><i class="fas fa-headset"></i> الدعم الفني</div>
+    <div class="row">
+      <a href="https://wa.me/201152415262" class="btn btn-ghost"><i class="fab fa-whatsapp"></i> واتساب</a>
+      <a href="tel:01152415262" class="btn btn-ghost"><i class="fas fa-phone"></i> اتصال</a>
+    </div>
+  </div>
+
+  <div class="foot">جميع الحقوق محفوظة © 2026 — شبكة أبو إسماعيل</div>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('installBtn');
+  var box = document.getElementById('installedBox');
+  var hint = document.getElementById('iosHint');
+  var deferredPrompt = null;
+
+  var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  /* التطبيق مثبت أصلًا → حالة «مثبت» */
+  if (isStandalone) { btn.style.display = 'none'; box.style.display = 'block'; }
+  /* آيفون: لا توجد نافذة تثبيت رسمية → شرح مختصر */
+  else if (isIOS) { btn.style.display = 'none'; hint.style.display = 'block'; }
+
+  /* التقاط حدث التثبيت الرسمي */
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+
+  btn.addEventListener('click', function () {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function (choice) {
+        deferredPrompt = null;
+        if (choice.outcome === 'accepted') {
+          btn.style.display = 'none';
+          box.style.display = 'block';
+        }
+      });
+    }
+  });
+
+  window.addEventListener('appinstalled', function () {
+    btn.style.display = 'none';
+    box.style.display = 'block';
+  });
+
+  /* تسجيل الـ Service Worker (تخزين الملفات الثابتة) */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
