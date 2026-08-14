@@ -1,31 +1,37 @@
 /* ============================================================
-  ⚙️ Service Worker — شبكة Abu Ismael
+  ⚙️ Service Worker — تطبيق شبكة أبو إسماعيل (v2)
 
-  وظيفته:
-  - يخزّن الملفات الثابتة (CSS / JS / أيقونات / خطوط) على جهاز
-    الزبون، فالصفحة تفتح أسرع في الزيارات التالية.
-  - 🚫 لا يلمس أبدًا صفحات الهوتسبوت الديناميكية (status/login)
-    ولا طلبات الـ API — لأنها تحمل بيانات المستخدم (الرصيد، IP،
-    الجلسة) ويجب أن تأتي من الشبكة دائمًا حتى لا تظهر بيانات
-    زبون قديم لزبون آخر.
+  السياسة المعتمدة:
+  - 🧭 طلبات التنقل (index.html + أي صفحة HTML): network-first
+    → الشبكة هي الأساس: أي تحديث يوصلك فورًا عند كل فتح.
+    ولو الجهاز أوفلاين → نسخة الكاش تخدم كبديل (التطبيق المثبّت
+    بيفتح حتى بدون نت ويعرض رسالة «اتصل بالشبكة أولًا»).
+  - 🎨 الأيقونات فقط (png/svg/ico): cache-first → تظهر فورًا
+    من الجهاز بدون طلب شبكة، وتتحدث من الشبكة عند غيابها.
+  - ⛔ أي شيء آخر (CSS/JS خارجية، خطوط، manifest، API):
+    شبكة مباشرة بدون كاش وبدون تدخل.
+  - 🚫 لا يلمس أبدًا صفحات الهوتسبوت (10.0.0.1) ولا الـ API —
+    لأنها تحمل بيانات المستخدم (الرصيد، IP، الجلسة).
 
   ملاحظة مهمة: المتصفحات تشغّل الـ Service Worker على اتصال
-  HTTPS فقط (أو localhost). لو الشبكة HTTP (كابتف بورتال
-  الميكروتك) يتخطّى التسجيل بصمت من غير أي تأثير على الصفحة.
+  HTTPS فقط (أو localhost). نسخة sw.js الموجودة على الراوتر
+  (شبكة HTTP) لا تُفعَّل أبدًا — تسجيلها محمي بشرط isSecureContext.
 
   عند تحديث أي ملف ثابت: غيّر رقم الإصدار في CACHE_NAME بالأسفل
-  (v1 → v2) فيتحدث الكاش تلقائيًا عند كل الزبائن.
+  (v2 → v3) فيتحدث الكاش تلقائيًا عند كل الزبائن.
 ============================================================ */
-var CACHE_NAME = 'abu-ismael-static-v1';
+var CACHE_NAME = 'abu-ismael-app-v2';
 
-/* الملفات الثابتة الأساسية: تُخزّن فور أول تشغيل */
+/* الأساسيات: واجهة التطبيق + الأيقونات + المانيفست — تُخزّن فور التثبيت
+   (index.html أساسية عشان التطبيق يفتح أوفلاين ويعرض رسالة الاتصال) */
 var PRECACHE = [
+  './index.html',
+  './manifest.json',
+  './icons/icon.svg',
+  './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-512-maskable.png',
-  './icons/icon-180.png',
-  './icons/icon.svg',
-  './manifest.json'
+  './icons/icon-512-maskable.png'
 ];
 
 /* 1) التثبيت: خزّن الأساسيات + فعّل النسخة الجديدة فورًا */
@@ -49,37 +55,60 @@ self.addEventListener('activate', function (event) {
   );
 });
 
-/* 3) الطلبات: سياسة الكاش الذكية */
+function isIcon(url) {
+  return /\.(png|svg|ico)(\?|$)/i.test(url.pathname);
+}
+
+function isNavigation(req, url) {
+  return req.mode === 'navigate' ||
+         url.pathname === '/' ||
+         /\.html?(\?|$)/i.test(url.pathname);
+}
+
+/* 🧭 network-first: الشبكة أولًا (التحديثات فورًا)، والكاش بديل عند الفشل */
+function networkFirst(req) {
+  return fetch(req).then(function (res) {
+    if (res && res.ok) {
+      var copy = res.clone();
+      caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
+    }
+    return res;
+  }).catch(function () {
+    return caches.match(req).then(function (hit) {
+      if (hit) return hit;
+      /* بديل أخير: لو فُتح '/' ومسجلة index.html تحت مسارها الصريح */
+      return caches.match('./index.html');
+    });
+  });
+}
+
+/* 🎨 cache-first: الكاش أولًا (سرعة قصوى)، والشبكة عند غياب النسخة */
+function cacheFirst(req) {
+  return caches.match(req).then(function (hit) {
+    if (hit) return hit;
+    return fetch(req).then(function (res) {
+      if (res && res.ok) {
+        var copy = res.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
+      }
+      return res;
+    });
+  });
+}
+
+/* 3) الطلبات: السياسة الذكية */
 self.addEventListener('fetch', function (event) {
   var req = event.request;
   if (req.method !== 'GET') return;
 
   var url = new URL(req.url);
-  var path = url.pathname;
 
-  /* 🚫 صفحة HTML أو طلب API → من الشبكة دائمًا، ممنوع الكاش نهائيًا
-     (حماية بيانات المستخدم من الخلط بين الزبائن) */
-  if (path.indexOf('.html') !== -1 || path.indexOf('quota') !== -1) {
-    event.respondWith(fetch(req));
-    return;
-  }
+  /* 🚫 أي طلب خارج نطاق التطبيق (10.0.0.1، CDN خارجي، API) →
+     شبكة مباشرة بدون تدخل */
+  if (url.origin !== location.origin) return;
 
-  /* ✅ ملف ثابت (css/js/أيقونة/خط/مانيفست):
-     من الكاش فورًا (سرعة) + تحديث من الشبكة خلف الكواليس
-     ولو الجهاز أوفلاين → نسخة الكاش القديمة تخدم كبديل */
-  if (path.match(/\.(css|js|png|svg|ico|json|webmanifest|woff2?|ttf|eot)(\?|$)/)) {
-    event.respondWith(
-      caches.match(req).then(function (cached) {
-        var network = fetch(req).then(function (res) {
-          if (res && res.ok) {
-            var copy = res.clone();
-            caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
-          }
-          return res;
-        }).catch(function () { return cached; });
-        return cached || network;
-      })
-    );
-  }
-  /* أي شيء آخر → الشبكة مباشرة بدون تدخل */
+  if (isNavigation(req, url)) { event.respondWith(networkFirst(req)); return; }
+  if (isIcon(url)) { event.respondWith(cacheFirst(req)); return; }
+
+  /* الباقي (manifest.json وغيره): شبكة مباشرة بدون كاش */
 });

@@ -21,7 +21,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
-:root{ --ai-red:#ff3742; --ai-red-dark:#c81f2c; --ai-bg:#0f1115; --ai-card:#181c24; --ai-panel:#21262f; --ai-border:#2e3440; --ai-text:#f5f6f8; --ai-muted:#a7adba; --ai-green:#2ee06f; }
+:root{ --ai-red:#ff3742; --ai-red-dark:#c81f2c; --ai-bg:#0f1115; --ai-card:#181c24; --ai-panel:#21262f; --ai-border:#2e3440; --ai-text:#f5f6f8; --ai-muted:#a7adba; --ai-green:#2ee06f; --ai-amber:#ffb020; }
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:18px; }
 .app{ width:100%; max-width:400px; }
@@ -39,7 +39,18 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
 .btn-ghost .fa-whatsapp{ color:var(--ai-green); }
 .btn-ghost .fa-phone{ color:var(--ai-red); }
 .installed{ display:none; text-align:center; padding:12px; border:1px solid rgba(46,224,111,.35); background:rgba(46,224,111,.1); border-radius:14px; color:var(--ai-green); font-weight:800; font-size:.95em; }
-.ios-hint{ display:none; margin-top:10px; font-size:.78em; color:var(--ai-muted); line-height:1.9; background:var(--ai-panel); border:1px solid var(--ai-border); border-radius:12px; padding:10px 12px; }
+/* ✅ رسالة التأكد من الاتصال بالشبكة (تظهر عند نجاح فحص البوابة) */
+.net-ok{ display:none; margin-top:10px; text-align:center; padding:10px 12px; border:1px solid rgba(46,224,111,.35); background:rgba(46,224,111,.1); border-radius:12px; color:var(--ai-green); font-weight:800; font-size:.9em; }
+/* ⚠️ رسالة «اتصل بالشبكة أولًا» (تظهر عند فشل فحص البوابة) */
+.net-warn{ display:none; margin-top:10px; padding:12px; border:1px solid rgba(255,176,32,.45); background:rgba(255,176,32,.1); border-radius:14px; }
+.net-warn .w-title{ color:var(--ai-amber); font-weight:800; font-size:.95em; margin-bottom:6px; display:flex; align-items:center; gap:7px; }
+.net-warn .w-sub{ font-size:.8em; color:var(--ai-muted); line-height:1.7; }
+.btn-retry{ margin-top:10px; background:var(--ai-panel); border:1px solid var(--ai-border); color:var(--ai-text); }
+.btn-retry .fa-rotate{ color:var(--ai-amber); }
+/* 📋 التعليمات اليدوية للتثبيت (تظهر لو beforeinstallprompt لم يصل خلال 3 ثوانٍ) */
+.manual-hint{ display:none; margin-top:10px; font-size:.78em; color:var(--ai-muted); line-height:1.9; background:var(--ai-panel); border:1px solid var(--ai-border); border-radius:12px; padding:10px 12px; }
+.manual-hint b{ color:#ff6b73; }
+.manual-hint .wait-line{ display:block; margin-top:6px; padding-top:6px; border-top:1px dashed var(--ai-border); color:var(--ai-green); font-weight:700; }
 .note{ margin-top:14px; font-size:.78em; color:var(--ai-muted); text-align:center; line-height:1.8; }
 .foot{ margin-top:16px; text-align:center; font-size:.75em; color:var(--ai-muted); }
 </style>
@@ -60,11 +71,26 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
     <div class="sec-title"><i class="fas fa-mobile-screen-button"></i> ثبّت التطبيق على شاشتك</div>
     <button type="button" id="installBtn" class="btn btn-primary"><i class="fas fa-download"></i> تثبيت التطبيق الآن</button>
     <div class="installed" id="installedBox"><i class="fas fa-circle-check"></i> تم تثبيت التطبيق على جهازك ✓</div>
-    <div class="ios-hint" id="iosHint"><b style="color:#ff6b73">آيفون:</b> اضغط زر المشاركة ↑ ثم «إضافة إلى الشاشة الرئيسية»</div>
+    <div class="manual-hint" id="manualHint">
+      <b>لو ما ظهرتش نافذة التثبيت تلقائيًا، ثبّت يدويًا:</b><br>
+      • <b>كروم (أندرويد):</b> اضغط ⋮ ← «إضافة إلى الشاشة الرئيسية»<br>
+      • <b>سفاري (آيفون):</b> اضغط مشاركة ↑ ← «إضافة إلى الشاشة الرئيسية»
+      <span class="wait-line"><i class="fas fa-hourglass-half"></i> عند أول فتح بعد التثبيت: انتظر ثانيتين على شاشة الدخول — الدخول التلقائي بيكمل لوحده</span>
+    </div>
 
     <!-- 🌐 فتح الشبكة -->
     <div class="sec-title" style="margin-top:20px"><i class="fas fa-wifi"></i> ابدأ التصفح</div>
-    <a href="http://10.0.0.1/status.html" class="btn btn-primary"><i class="fas fa-arrow-left"></i> افتح الشبكة الآن</a>
+
+    <!-- ✅ نجح فحص البوابة (التطبيق المثبّت + متصل بالشبكة) -->
+    <div class="net-ok" id="netOk"><i class="fas fa-circle-check"></i> أنت متصل بشبكة أبو إسماعيل ✓</div>
+    <!-- ⚠️ فشل فحص البوابة (التطبيق المثبّت + مش على الشبكة) -->
+    <div class="net-warn" id="netWarn">
+      <div class="w-title"><i class="fas fa-triangle-exclamation"></i> اتصل بشبكة أبو إسماعيل أولًا</div>
+      <div class="w-sub">التطبيق مش لاقي بوابة الشبكة (10.0.0.1) — شغّل واي فاي شبكة أبو إسماعيل وجرّب تاني.<br>لو أنت متصل بالشبكة فعلًا، استخدم زر «افتح الشبكة الآن» مباشرة.</div>
+      <button type="button" id="netRetryBtn" class="btn btn-retry"><i class="fas fa-rotate"></i> إعادة المحاولة</button>
+    </div>
+
+    <a href="http://10.0.0.1/status.html" id="openNetBtn" class="btn btn-primary" style="margin-top:10px"><i class="fas fa-arrow-left"></i> افتح الشبكة الآن</a>
     <div class="note">التطبيق بيشتغل لما تكون متصل بشبكة أبو إسماعيل — بيفتح صفحة باقتك وكروت الشحن.</div>
 
     <!-- 🎧 الدعم -->
@@ -82,21 +108,40 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
 (function () {
   var btn = document.getElementById('installBtn');
   var box = document.getElementById('installedBox');
-  var hint = document.getElementById('iosHint');
+  var hint = document.getElementById('manualHint');
+  var netOk = document.getElementById('netOk');
+  var netWarn = document.getElementById('netWarn');
+  var retryBtn = document.getElementById('netRetryBtn');
   var deferredPrompt = null;
+  var hintShown = false;
 
   var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  /* 📋 إظهار التعليمات اليدوية (مرة واحدة فقط) */
+  function showManualHint() {
+    if (hintShown) return;
+    hintShown = true;
+    if (btn) btn.style.display = 'none';
+    if (hint) hint.style.display = 'block';
+  }
 
   /* التطبيق مثبت أصلًا → حالة «مثبت» */
-  if (isStandalone) { btn.style.display = 'none'; box.style.display = 'block'; }
-  /* آيفون: لا توجد نافذة تثبيت رسمية → شرح مختصر */
-  else if (isIOS) { btn.style.display = 'none'; hint.style.display = 'block'; }
+  if (isStandalone) {
+    if (btn) btn.style.display = 'none';
+    if (box) box.style.display = 'block';
+  }
+
+  /* ============================================================
+     4أ) لو beforeinstallprompt لم يصل خلال 3 ثوانٍ → نعرض تعليمات
+         التثبيت اليدوية تلقائيًا (كروم: ⋮ — سفاري: مشاركة ↑)
+     ============================================================ */
+  var fallbackTimer = setTimeout(showManualHint, 3000);
 
   /* التقاط حدث التثبيت الرسمي */
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferredPrompt = e;
+    clearTimeout(fallbackTimer);
   });
 
   btn.addEventListener('click', function () {
@@ -109,6 +154,9 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
           box.style.display = 'block';
         }
       });
+    } else {
+      /* مفيش نافذة رسمية متاحة → شرح يدوي فورًا */
+      showManualHint();
     }
   });
 
@@ -116,6 +164,69 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
     btn.style.display = 'none';
     box.style.display = 'block';
   });
+
+  /* ============================================================
+     4ب) عند فتح التطبيق المثبّت: فحص بوابة الشبكة (10.0.0.1)
+         — لو فشل خلال 3 ثوانٍ → «اتصل بشبكة أبو إسماعيل أولًا»
+           + زر إعادة المحاولة.
+         — لو نجح → «أنت متصل ✓».
+
+         ⚠️ ملاحظة تقنية مثبتة تجريبيًا (كروم 2026): المتصفحات
+         تحجب fetch لـ http://10.0.0.1 من صفحات HTTPS العامة
+         (مثل GitHub Pages) بسياسة Private Network Access /
+         Mixed Content — ففشل الفحص لا يعني بالضرورة أن الجهاز
+         خارج الشبكة. لذلك الرسالة تظهر فقط عند إشارة قطعية:
+         - منقطع كليًا (نavigator.onLine=false) أو على بيانات
+           موبايل (navigator.connection.type='cellular') →
+           «اتصل بشبكة أبو إسماعيل أولًا» + إعادة المحاولة.
+         - على واي فاي (أو نوع غير معروف) + فحص محجوب →
+           لا رسالة خطأ كاذبة؛ زر «افتح الشبكة الآن» يوصلك
+           مباشرة لو كنت على الشبكة فعلًا.
+     ============================================================ */
+  var GATEWAY_URL = 'http://10.0.0.1/status.html';
+
+  function probeGateway() {
+    return new Promise(function (resolve) {
+      var ctrl = new AbortController();
+      var timer = setTimeout(function () { ctrl.abort(); }, 3000);
+      fetch(GATEWAY_URL, { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
+        .then(function () { clearTimeout(timer); resolve(true); })
+        .catch(function () { clearTimeout(timer); resolve(false); });
+    });
+  }
+
+  function getConnType() {
+    try {
+      if (navigator.connection && navigator.connection.type) {
+        return navigator.connection.type; /* 'wifi' | 'cellular' | ... */
+      }
+    } catch (e) {}
+    return null; /* غير مدعوم (مثل آيفون) */
+  }
+
+  function checkNetwork() {
+    if (netOk) netOk.style.display = 'none';
+    if (netWarn) netWarn.style.display = 'none';
+    probeGateway().then(function (ok) {
+      if (ok) {
+        if (netOk) netOk.style.display = 'block';
+        return;
+      }
+      /* الفحص فشل — نقرر هل الرسالة مبررة أم الفحص محجوب بسياسة المتصفح:
+         رسالة فقط عند إشارة قطعية (منقطع كليًا أو بيانات موبايل) */
+      var connType = getConnType();
+      var offline = navigator.onLine === false;
+      if (offline || connType === 'cellular') {
+        if (netWarn) netWarn.style.display = 'block';
+      }
+      /* واي فاي / نوع غير معروف + فحص محجوب → لا رسالة كاذبة (زر الفتح كافٍ) */
+    });
+  }
+
+  if (isStandalone) {
+    checkNetwork();
+    if (retryBtn) retryBtn.addEventListener('click', checkNetwork);
+  }
 
   /* تسجيل الـ Service Worker (تخزين الملفات الثابتة) */
   if ('serviceWorker' in navigator) {
