@@ -144,7 +144,63 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
     clearTimeout(fallbackTimer);
   });
 
+  /* ============================================================
+     4أ-2) فحص: هل التطبيق مثبت أصلًا على الجهاز؟ (كروم أندرويد)
+         — لو مثبت → حالة «تم التثبيت» والزر يختفي وتنتهي المهمة.
+     ============================================================ */
+  var isInstalled = false;
+  if (navigator.getInstalledRelatedApps) {
+    navigator.getInstalledRelatedApps().then(function (apps) {
+      isInstalled = apps.some(function (a) {
+        return (a.id && a.id === 'abu-ismael-app') ||
+               (a.url && a.url.indexOf(location.origin) === 0);
+      });
+      if (isInstalled) {
+        clearTimeout(fallbackTimer);
+        if (btn) btn.style.display = 'none';
+        if (box) box.style.display = 'block';
+      }
+    }).catch(function () {});
+  }
+
+  /* ============================================================
+     4أ-3) التحويل التلقائي لكروم (أندرويد):
+         المتصفح الخفيف بتاع الهوتسبوت مش بيسمح بالتثبيت، فلمّا
+         المستخدم يضغط الزر → نفتح نفس الصفحة في كروم مباشرة
+         (intent:// → com.android.chrome) واللي بيعرض نافذة
+         التثبيت الرسمية. لو الـ intent اتجاهل → شرح يدوي.
+     ============================================================ */
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
+
+  function isRealChrome() {
+    var ua = navigator.userAgent;
+    return /Chrome\//i.test(ua) &&
+           !/wv|Version\/4\.0|OPR\/|Edg\/|SamsungBrowser|MiuiBrowser|YaBrowser/i.test(ua);
+  }
+
+  function openInChrome() {
+    var url = location.href.split('#')[0];
+    var intent = 'intent://' + url.replace(/^https?:\/\//i, '') +
+                 '#Intent;scheme=https;package=com.android.chrome;' +
+                 'S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+    if (btn) btn.innerHTML = '<i class="fas fa-compass"></i> جاري فتح كروم…';
+    try {
+      location.href = intent;
+    } catch (e) {}
+    /* لو المتصفح الخفيف تجاهل الـ intent → الشرح اليدوي كملاذ أخير */
+    setTimeout(function () {
+      if (!isInstalled && !deferredPrompt) showManualHint();
+    }, 1500);
+  }
+
   btn.addEventListener('click', function () {
+    if (isInstalled) {
+      btn.style.display = 'none';
+      box.style.display = 'block';
+      return;
+    }
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(function (choice) {
@@ -154,6 +210,9 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
           box.style.display = 'block';
         }
       });
+    } else if (isAndroid() && !isRealChrome()) {
+      /* المتصفح الخفيف (مش كروم) → تحويل تلقائي لكروم */
+      openInChrome();
     } else {
       /* مفيش نافذة رسمية متاحة → شرح يدوي فورًا */
       showManualHint();
