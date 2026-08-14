@@ -149,6 +149,7 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
          — لو مثبت → حالة «تم التثبيت» والزر يختفي وتنتهي المهمة.
      ============================================================ */
   var isInstalled = false;
+  var redirectTimer = null;
   if (navigator.getInstalledRelatedApps) {
     navigator.getInstalledRelatedApps().then(function (apps) {
       isInstalled = apps.some(function (a) {
@@ -157,6 +158,7 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
       });
       if (isInstalled) {
         clearTimeout(fallbackTimer);
+        if (redirectTimer) clearTimeout(redirectTimer);
         if (btn) btn.style.display = 'none';
         if (box) box.style.display = 'block';
       }
@@ -193,6 +195,19 @@ body{ background:var(--ai-bg); color:var(--ai-text); font-family:Tahoma,Arial,sa
     setTimeout(function () {
       if (!isInstalled && !deferredPrompt) showManualHint();
     }, 1500);
+  }
+
+  /* ============================================================
+     4أ-0) تحويل تلقائي لكروم فور فتح الصفحة في المتصفح الخفيف
+         (مش كروم): قبل أي ضغطة — عشان بعد تسجيل الدخول الصفحة
+         متختفيش وزر التثبيت يظهر ويشتغل (كروم بس اللي بيدعم
+         التثبيت). لو التطبيق مثبت أصلًا → فحص الـ installed
+         تحت هيوقف التحويل وتظهر حالة «تم التثبيت» بدل كده.
+     ============================================================ */
+  if (isAndroid() && !isRealChrome() && !isStandalone) {
+    clearTimeout(fallbackTimer);
+    if (btn) btn.innerHTML = '<i class="fas fa-compass"></i> جاري فتح كروم…';
+    redirectTimer = setTimeout(openInChrome, 400);
   }
 
   btn.addEventListener('click', function () {
